@@ -1,0 +1,22 @@
+trigger UpdateEventStatus on Registration__c (after insert, after update, after delete) {
+    Set<Id> eventIds = new Set<Id>();
+
+    if (Trigger.isInsert || Trigger.isUpdate) {
+        for (Registration__c reg : Trigger.new) {
+            if (reg.Event__c != null) {
+                eventIds.add(reg.Event__c);
+            }
+        }
+    }
+
+    if (Trigger.isDelete) {
+        for (Registration__c reg : Trigger.old) {
+            if (reg.Event__c != null) {
+                eventIds.add(reg.Event__c);
+            }
+        }
+    }
+
+    // Call the EventManager class to handle the logic
+    EventManager.registerAttendees(eventIds);
+}

@@ -1,0 +1,38 @@
+public class EventManager {
+    
+    public static void registerAttendees(Set<Id> eventIds) {
+        List<Event__c> eventsToUpdate = new List<Event__c>();
+        List<Registration__c> registrationsToInsert = new List<Registration__c>();
+        Map<Id, Event__c> eventsMap = new Map<Id, Event__c>([SELECT Id, Registered_Attendees__c, Capacity__c FROM Event__c WHERE Id IN :eventIds]);
+
+        for (Id eventId : eventIds) {
+            Event__c eventRecord = eventsMap.get(eventId);
+            if (eventRecord != null) {
+                // Calculate the current registered attendees
+                Integer currentRegistrations = [SELECT COUNT() FROM Registration__c WHERE Event__c = :eventId AND Status__c = 'Registered'];
+                
+                // Update the Registered_Attendees__c field
+                eventRecord.Registered_Attendees__c = currentRegistrations;
+
+                // Check if the event is full
+                if (currentRegistrations >= eventRecord.Capacity__c) {
+                    eventRecord.Status__c = 'Full';
+                } else {
+                    eventRecord.Status__c = 'Upcoming'; // Assuming you set it back to Upcoming when there is capacity
+                }
+
+                eventsToUpdate.add(eventRecord);
+            }
+        }
+
+        // Update the Event records
+        if (!eventsToUpdate.isEmpty()) {
+            try {
+                update eventsToUpdate;
+            } catch (DmlException e) {
+                // Handle any DML exceptions
+                System.debug('Error updating events: ' + e.getMessage());
+            }
+        }
+    }
+}
